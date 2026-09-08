@@ -115,30 +115,98 @@
 <script>
 // ====== 여기에서 문제를 편집하세요 ======
 const QUIZ = {
-  title: "수업 마무리 퀴즈",
+ title: "의학용어 퀴즈",
   questions: [
     {
-      type: "mc",                       // 객관식
-      q: "대한민국의 수도는?",
-      options: ["서울", "부산", "대구", "인천"],
-      answer: 0,                        // options 인덱스 (0=서울)
-      time: 20                          // 제한 시간(초)
+      type: "mc",
+      q: "다음 중 '색상'을 나타내는 어근과 실제 임상 용어의 연결이 올바르지 않은 것은?",
+      options: [
+        "melan/o (검은) — melanoma (흑색종)",
+        "leuk/o (하얀) — leukemia (백혈병)",
+        "cyan/o (붉은) — cyanosis (청색증)",
+        "erythr/o (붉은)"
+      ],
+      answer: 2,
+      time: 30
+    },
+    {
+      type: "short",
+      q: "'위(stomach)'를 뜻하는 어근 gastr/o와 '염증(inflammation)'을 뜻하는 접미사 -itis를 조립하여 완성되는 의학용어를 쓰시오.",
+      answer: ["gastritis"],
+      time: 30
     },
     {
       type: "mc",
-      q: "1 + 1 × 2 의 값은?",
-      options: ["2", "3", "4", "6"],
-      answer: 1,                        // 3
-      time: 15
+      q: "의학용어 pericardium에서 사용된 접두사 peri-의 의미로 올바른 것은?",
+      options: ["안에 (endo-)", "위에 (epi-)", "아래에 (sub-)", "주위에 (around)"],
+      answer: 3,
+      time: 25
     },
     {
-      type: "short",                    // 주관식(단답)
-      q: "물의 화학식을 쓰세요.",
-      answer: ["H2O", "h2o"],           // 허용 정답 여러 개 가능
+      type: "short",
+      q: "어근 'cardi/o'가 의미하는 신체 부위는?",
+      answer: ["심장", "heart"],
+      time: 25
+    },
+    {
+      type: "mc",
+      q: "어근과 접미사가 결합할 때, 규칙에 따라 연결모음 'o'가 생략되어야 하는 결합 방식은?",
+      options: [
+        "gastr/o + -megaly",
+        "cardi/o + -pathy",
+        "gastr/o + -itis",
+        "oste/o + -malacia"
+      ],
+      answer: 2,
+      time: 30
+    },
+    {
+      type: "mc",
+      q: "'배뇨곤란'을 뜻하는 dysuria에서 접두사 dys-가 나타내는 의미로 가장 적절한 것은?",
+      options: [
+        "없는, 무(a-/an-)",
+        "나쁜(mal-)",
+        "곤란, 병적(painful, difficult)",
+        "초과, 과다(hyper-)"
+      ],
+      answer: 2,
+      time: 25
+    },
+    {
+      type: "mc",
+      q: "임상 현장에서 투약 처방 시 자주 사용되는 약어 중, '필요시(Pro Re Nata)'를 뜻하며 통증 완화제 등에 주로 결합하는 약어는?",
+      options: ["NPO", "PRN", "stat", "BID"],
+      answer: 1,
+      time: 25
+    },
+    {
+      type: "short",
+      q: "어근 melan/o와 접미사 -oma(종양)가 결합하여 만들어진 질환명은?",
+      answer: ["melanoma"],
+      time: 25
+    },
+    {
+      type: "mc",
+      q: "'삼킴곤란(aphagia)'에서 사용된 접미사 -phagia가 가진 본래의 의미는?",
+      options: ["소화", "삼킴", "구토", "통증"],
+      answer: 1,
+      time: 25
+    },
+    {
+      type: "mc",
+      q: "정맥 주사를 뜻하는 약어 IV는 Intravenous에서 유래한다. 접두사 intra-가 가진 의미로 가장 올바른 것은?",
+      options: [
+        "밖의, 외부(extra-)",
+        "안의, 내부(within)",
+        "사이의(inter-)",
+        "초과, 과다(hyper-)"
+      ],
+      answer: 1,
       time: 25
     }
   ]
 };
+  
 // ========================================
 
 const socket = io();
