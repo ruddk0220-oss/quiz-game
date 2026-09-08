@@ -1,5 +1,5 @@
 // ============================================================
-//  실시간 퀴즈 게임 서버 (교실용) - 개인전 방식
+//  실시간 퀴즈 게임 서버 (교실용) - 개인전 방식 + 재접속 이어하기
 //  점수: 정답이면 기본 100점 + 속도 보너스(최대 100점)
 // ============================================================
 const express = require('express');
@@ -33,7 +33,8 @@ function calcScore(isCorrect, elapsedMs, limitMs) {
 
 function leaderboard(room) {
   return Object.values(room.players)
-    .map((p) => ({ name: p.name, score: p.score, progress: p.currentIndex, done: p.done || false }))
+    .filter((p) => p.connected || p.currentIndex > 0 || p.score > 0)
+    .map((p) => ({ name: p.name, score: p.score, progress: p.currentIndex, done: p.done || false, connected: p.connected }))
     .sort((a, b) => b.score - a.score);
 }
 
@@ -41,9 +42,15 @@ function normalize(str) {
   return String(str).trim().toLowerCase().replace(/\s+/g, '');
 }
 
-function sendQuestionToPlayer(room, sid) {
-  const player = room.players[sid];
-  if (!player) return;
+// 이름으로 기존 참가자 찾기 (재접속용)
+function findPlayerByName(room, name) {
+  const key = normalize(name);
+  return Object.values(room.players).find((p) => normalize(p.name) === key);
+}
+
+function sendQuestionToPlayer(room, player) {
+  if (!player || !player.sid) return;
+  const sid = player.sid;
   const idx = player.currentIndex;
   if (idx >= room.quiz.questions.length) {
     player.done = true;
@@ -88,9 +95,47 @@ io.on('connection', (socket) => {
   socket.on('player:join', ({ pin, name }, cb) => {
     const room = rooms[pin];
     if (!room) return cb && cb({ ok: false, error: '존재하지 않는 방 번호입니다.' });
-    if (room.state !== 'lobby') return cb && cb({ ok: false, error: '이미 시작된 게임입니다.' });
+
     const clean = String(name || '').trim().slice(0, 12) || '학생';
-    room.players[socket.id] = { name: clean, score: 0, currentIndex: 0, answered: false, done: false, questionStartAt: 0 };
+
+    // 같은 이름의 기존 참가자가 있으면 = 재접속 → 이어서 하기
+    const existing = findPlayerByName(room, clean);
+    if (existing) {
+      // 기존 소켓 정보를 새 소켓으로 옮김
+      delete room.players[existing.sid];
+      existing.sid = socket.id;
+      existing.connected = true;
+      room.players[socket.id] = existing;
+      socket.join(pin);
+      socket.data.pin = pin;
+      socket.data.role = 'player';
+      cb && cb({ ok: true, name: existing.name, resumed: true });
+
+      // 게임 진행 중이면 풀던 문제(또는 완료화면)를 다시 보여줌
+      if (room.state === 'playing') {
+        if (existing.done) {
+          io.to(socket.id).emit('player:finished', { score: existing.score });
+        } else {
+          sendQuestionToPlayer(room, existing);
+        }
+      }
+      io.to(room.hostId).emit('host:players', {
+        count: Object.keys(room.players).length,
+        names: Object.values(room.players).map((p) => p.name),
+      });
+      pushLeaderboard(room);
+      return;
+    }
+
+    // 새 참가자: 로비 상태에서만 받음
+    if (room.state !== 'lobby') {
+      return cb && cb({ ok: false, error: '이미 시작된 게임이에요. 같은 이름으로 다시 들어오면 이어서 할 수 있어요.' });
+    }
+
+    room.players[socket.id] = {
+      sid: socket.id, name: clean, score: 0, currentIndex: 0,
+      answered: false, done: false, questionStartAt: 0, connected: true,
+    };
     socket.join(pin);
     socket.data.pin = pin;
     socket.data.role = 'player';
@@ -106,9 +151,11 @@ io.on('connection', (socket) => {
     const room = rooms[pin];
     if (!room || room.hostId !== socket.id) return;
     room.state = 'playing';
-    Object.keys(room.players).forEach((sid) => {
-      room.players[sid].currentIndex = 0;
-      sendQuestionToPlayer(room, sid);
+    Object.values(room.players).forEach((player) => {
+      player.currentIndex = 0;
+      player.done = false;
+      player.score = 0;
+      sendQuestionToPlayer(room, player);
     });
     pushLeaderboard(room);
   });
@@ -134,11 +181,12 @@ io.on('connection', (socket) => {
     player.score += gain;
     player.answered = true;
     cb && cb({ ok: true, correct: isCorrect, gain, score: player.score });
+    const sid = socket.id;
     setTimeout(() => {
       const r = rooms[pin];
-      if (!r || !r.players[socket.id]) return;
-      r.players[socket.id].currentIndex += 1;
-      sendQuestionToPlayer(r, socket.id);
+      if (!r || !r.players[sid]) return;
+      r.players[sid].currentIndex += 1;
+      sendQuestionToPlayer(r, r.players[sid]);
       pushLeaderboard(r);
     }, 1200);
     pushLeaderboard(room);
@@ -152,7 +200,7 @@ io.on('connection', (socket) => {
     if (!player || player.answered || player.done) return;
     player.answered = true;
     player.currentIndex += 1;
-    sendQuestionToPlayer(room, socket.id);
+    sendQuestionToPlayer(room, player);
     pushLeaderboard(room);
   });
 
@@ -171,7 +219,8 @@ io.on('connection', (socket) => {
       io.to(pin).emit('game:closed');
       delete rooms[pin];
     } else if (room.players[socket.id]) {
-      delete room.players[socket.id];
+      // 바로 삭제하지 않고 '연결 끊김'으로만 표시 → 재접속 시 이어하기 가능
+      room.players[socket.id].connected = false;
       io.to(room.hostId).emit('host:players', {
         count: Object.keys(room.players).length,
         names: Object.values(room.players).map((p) => p.name),
@@ -192,5 +241,5 @@ function localIP() {
 }
 
 server.listen(PORT, () => {
-  console.log('  퀴즈 게임 서버 실행 중 (개인전) : http://' + localIP() + ':' + PORT + '/host.html');
+  console.log('  퀴즈 게임 서버 실행 중 (개인전+이어하기) : http://' + localIP() + ':' + PORT + '/host.html');
 });
