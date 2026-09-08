@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>퀴즈 참가</title>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+  :root{
+    --bg:#0f1226; --card:#1b1f3b; --accent:#6c5ce7; --accent2:#00cec9;
+    --text:#f5f6fa; --muted:#a4a8c3;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{
+    font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Malgun Gothic',sans-serif;
+    background:radial-gradient(circle at 30% 20%,#25275a,#0f1226 70%);
+    color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
+  }
+  .card{
+    width:100%;max-width:440px;background:var(--card);border-radius:24px;
+    padding:32px 24px;box-shadow:0 20px 60px rgba(0,0,0,.4);
+  }
+  h1{font-size:24px;margin-bottom:6px;text-align:center}
+  .sub{color:var(--muted);text-align:center;margin-bottom:24px;font-size:14px}
+  input{
+    width:100%;padding:16px;border:none;border-radius:14px;font-size:18px;
+    background:#12152e;color:var(--text);margin-bottom:14px;outline:none;
+    border:2px solid transparent;
+  }
+  input:focus{border-color:var(--accent)}
+  button{
+    width:100%;padding:16px;border:none;border-radius:14px;font-size:18px;font-weight:700;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;cursor:pointer;
+    transition:transform .1s;
+  }
+  button:active{transform:scale(.97)}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .err{color:#ff6b6b;font-size:14px;text-align:center;margin-top:12px;min-height:20px}
+  .hidden{display:none}
+
+  /* 문제 화면 */
+  .qtop{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;color:var(--muted);font-size:14px}
+  .timer{font-weight:800;font-size:20px;color:var(--accent2)}
+  .qtext{font-size:20px;font-weight:700;line-height:1.4;margin:16px 0 24px}
+  .options{display:grid;gap:12px}
+  .opt{
+    padding:18px;border-radius:14px;font-size:17px;font-weight:600;text-align:left;color:#fff;
+    border:none;cursor:pointer;
+  }
+  .opt:nth-child(1){background:#e17055}
+  .opt:nth-child(2){background:#0984e3}
+  .opt:nth-child(3){background:#00b894}
+  .opt:nth-child(4){background:#fdcb6e;color:#2d3436}
+  .opt:disabled{opacity:.4}
+  .waitbox{text-align:center;padding:30px 0}
+  .waitbox .big{font-size:44px;font-weight:800;margin:10px 0}
+  .rank{font-size:20px;color:var(--accent2);font-weight:800}
+  .badge{display:inline-block;padding:8px 16px;border-radius:999px;font-weight:700;margin-top:10px}
+  .ok{background:#00b894}
+  .no{background:#d63031}
+</style>
+</head>
+<body>
+<div class="card">
+  <!-- 1. 참가 화면 -->
+  <div id="join">
+    <h1>🎮 퀴즈 참가</h1>
+    <p class="sub">방 번호와 이름을 입력하세요</p>
+    <input id="pin" type="tel" inputmode="numeric" placeholder="방 번호 (4자리)" maxlength="4" />
+    <input id="name" type="text" placeholder="이름 / 닉네임" maxlength="12" />
+    <button id="joinBtn">입장하기</button>
+    <div class="err" id="joinErr"></div>
+  </div>
+
+  <!-- 2. 대기 화면 -->
+  <div id="lobby" class="hidden">
+    <div class="waitbox">
+      <div>✅ 입장 완료!</div>
+      <div class="big" id="myName"></div>
+      <p class="sub">선생님이 문제를 시작할 때까지<br/>잠시 기다려 주세요…</p>
+    </div>
+  </div>
+
+  <!-- 3. 문제 화면 -->
+  <div id="quiz" class="hidden">
+    <div class="qtop">
+      <span id="qnum"></span>
+      <span class="timer" id="timer"></span>
+    </div>
+    <div class="qtext" id="qtext"></div>
+    <div class="options" id="options"></div>
+    <input id="shortAns" class="hidden" placeholder="정답 입력 후 Enter" />
+  </div>
+
+  <!-- 4. 응답 후 대기 -->
+  <div id="answered" class="hidden">
+    <div class="waitbox">
+      <div>답안 제출 완료</div>
+      <span class="badge" id="resultBadge"></span>
+      <p class="sub" style="margin-top:16px">다른 친구들을 기다리는 중…</p>
+    </div>
+  </div>
+
+  <!-- 5. 순위 공개 -->
+  <div id="reveal" class="hidden">
+    <div class="waitbox">
+      <div class="rank" id="myRank"></div>
+      <div class="big" id="myScore"></div>
+      <div id="gainText" class="sub"></div>
+    </div>
+  </div>
+
+  <!-- 종료 -->
+  <div id="ended" class="hidden">
+    <div class="waitbox">
+      <div>🏁 게임 종료!</div>
+      <div class="big" id="finalScore"></div>
+      <p class="sub">수고했어요 👏</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const socket = io();
+let myName = '';
+let timerInt = null;
+
+function show(id){
+  ['join','lobby','quiz','answered','reveal','ended'].forEach(x=>{
+    document.getElementById(x).classList.toggle('hidden', x!==id);
+  });
+}
+
+// URL 파라미터로 pin 자동 입력 (QR에 ?pin=1234)
+const params = new URLSearchParams(location.search);
+if(params.get('pin')) document.getElementById('pin').value = params.get('pin');
+
+document.getElementById('joinBtn').onclick = join;
+function join(){
+  const pin = document.getElementById('pin').value.trim();
+  const name = document.getElementById('name').value.trim();
+  if(pin.length<4 || !name){ document.getElementById('joinErr').textContent='방 번호와 이름을 확인하세요'; return; }
+  socket.emit('player:join',{pin,name},(res)=>{
+    if(!res.ok){ document.getElementById('joinErr').textContent=res.error; return; }
+    myName = res.name;
+    document.getElementById('myName').textContent = myName;
+    show('lobby');
+  });
+}
+
+function startTimer(sec){
+  clearInterval(timerInt);
+  let t = sec;
+  const el = document.getElementById('timer');
+  el.textContent = t+'s';
+  timerInt = setInterval(()=>{
+    t--;
+    el.textContent = Math.max(0,t)+'s';
+    if(t<=0){ clearInterval(timerInt); lockAnswers(); }
+  },1000);
+}
+
+function lockAnswers(){
+  document.querySelectorAll('.opt').forEach(b=>b.disabled=true);
+  document.getElementById('shortAns').disabled=true;
+}
+
+socket.on('player:question', (q)=>{
+  show('quiz');
+  document.getElementById('qnum').textContent = `문제 ${q.index+1} / ${q.total}`;
+  document.getElementById('qtext').textContent = q.question;
+  const optBox = document.getElementById('options');
+  const shortAns = document.getElementById('shortAns');
+  optBox.innerHTML='';
+  if(q.type==='mc'){
+    shortAns.classList.add('hidden');
+    optBox.classList.remove('hidden');
+    q.options.forEach(o=>{
+      const b=document.createElement('button');
+      b.className='opt'; b.textContent=o.text;
+      b.onclick=()=>submit(o.i);
+      optBox.appendChild(b);
+    });
+  } else {
+    optBox.classList.add('hidden');
+    shortAns.classList.remove('hidden');
+    shortAns.value=''; shortAns.disabled=false;
+    shortAns.focus();
+    shortAns.onkeydown=(e)=>{ if(e.key==='Enter' && shortAns.value.trim()) submit(shortAns.value.trim()); };
+  }
+  startTimer(q.time);
+});
+
+function submit(answer){
+  lockAnswers();
+  socket.emit('player:answer',{answer},(res)=>{
+    const badge=document.getElementById('resultBadge');
+    if(res && res.ok){
+      badge.textContent = res.correct ? `정답! +${res.gain}점` : '아쉬워요 😢';
+      badge.className = 'badge ' + (res.correct?'ok':'no');
+    }
+    show('answered');
+  });
+}
+
+socket.on('player:reveal', (d)=>{
+  clearInterval(timerInt);
+  document.getElementById('myRank').textContent = `${d.rank}위 / ${d.total}명`;
+  document.getElementById('myScore').textContent = d.score.toLocaleString()+'점';
+  document.getElementById('gainText').textContent = d.lastGain>0 ? `이번 문제 +${d.lastGain}점` : '이번 문제 0점';
+  show('reveal');
+});
+
+socket.on('game:ended', ()=>{ /* 개별 최종은 아래 */ });
+socket.on('player:reveal', ()=>{});
+socket.on('game:ended', (d)=>{
+  const me = (d.leaderboard||[]).find(p=>p.name===myName);
+  document.getElementById('finalScore').textContent = me ? me.score.toLocaleString()+'점' : '';
+  show('ended');
+});
+socket.on('game:closed', ()=>{ alert('선생님이 게임을 종료했어요.'); location.reload(); });
+</script>
+</body>
+</html>

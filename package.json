@@ -1,0 +1,14 @@
+{
+  "name": "classroom-quiz-game",
+  "version": "1.0.0",
+  "description": "교실용 실시간 QR 퀴즈 게임 (카훗 스타일)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.22.2",
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3"
+  }
+}
