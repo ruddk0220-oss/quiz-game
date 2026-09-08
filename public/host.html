@@ -6,73 +6,65 @@
 <title>퀴즈 진행 (교사용)</title>
 <script src="/socket.io/socket.io.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
 <style>
-  :root{ --bg:#0f1226; --card:#1b1f3b; --accent:#6c5ce7; --accent2:#00cec9; --text:#f5f6fa; --muted:#a4a8c3; }
+  :root{
+    --bg1:#fff4f8; --bg2:#eef7ff; --card:#ffffff;
+    --pink:#ff9fc4; --mint:#7fe3c9; --lav:#b9a7ff; --lemon:#ffd97a; --sky:#8fd0ff;
+    --ink:#5b4a5a; --muted:#a99bb0;
+  }
   *{box-sizing:border-box;margin:0;padding:0}
   body{
-    font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Malgun Gothic',sans-serif;
-    background:radial-gradient(circle at 70% 10%,#25275a,#0f1226 70%);color:var(--text);min-height:100vh;padding:24px;
+    font-family:'Jua',-apple-system,'Malgun Gothic',sans-serif;
+    background:linear-gradient(160deg,var(--bg1),var(--bg2));color:var(--ink);min-height:100vh;padding:26px;
   }
-  .wrap{max-width:1100px;margin:0 auto}
-  h1{font-size:26px;margin-bottom:16px}
+  .wrap{max-width:1080px;margin:0 auto}
+  h1{font-size:30px;margin-bottom:18px;color:#ff7fb0}
   .btn{
-    padding:14px 28px;border:none;border-radius:12px;font-size:17px;font-weight:700;cursor:pointer;
-    background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;transition:transform .1s;
+    padding:14px 30px;border:none;border-radius:20px;font-size:19px;cursor:pointer;font-family:inherit;color:#fff;
+    background:linear-gradient(135deg,var(--pink),var(--lav));box-shadow:0 8px 0 -1px #e98bc0;transition:transform .12s,box-shadow .12s;
   }
-  .btn:active{transform:scale(.97)}
-  .btn.ghost{background:#2a2f55}
+  .btn:active{transform:translateY(5px);box-shadow:0 3px 0 -1px #e98bc0}
+  .btn.ghost{background:linear-gradient(135deg,#9ff0d8,#6fe0c1);box-shadow:0 8px 0 -1px #66cfb0}
   .hidden{display:none}
 
-  /* 로비 */
-  .lobby{display:grid;grid-template-columns:auto 1fr;gap:32px;align-items:start;background:var(--card);border-radius:24px;padding:32px}
-  .qrbox{text-align:center}
-  #qrcode{background:#fff;padding:16px;border-radius:16px;display:inline-block}
-  .pin{font-size:56px;font-weight:900;letter-spacing:6px;color:var(--accent2);margin:12px 0}
-  .joinurl{color:var(--muted);font-size:15px;word-break:break-all;margin-top:8px}
-  .players{}
-  .players h2{font-size:20px;margin-bottom:12px}
-  .count{color:var(--accent2);font-weight:800}
-  .plist{display:flex;flex-wrap:wrap;gap:8px;max-height:340px;overflow:auto}
-  .chip{background:#2a2f55;padding:8px 16px;border-radius:999px;font-weight:600}
-
-  /* 문제 화면 */
-  .qcard{background:var(--card);border-radius:24px;padding:32px}
-  .qhead{display:flex;justify-content:space-between;align-items:center;color:var(--muted);margin-bottom:16px}
-  .timer{font-size:32px;font-weight:900;color:var(--accent2)}
-  .qtext{font-size:32px;font-weight:800;line-height:1.4;margin:16px 0 28px}
-  .opts{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-  .opt{padding:24px;border-radius:16px;font-size:22px;font-weight:700;color:#fff}
-  .opt:nth-child(1){background:#e17055}
-  .opt:nth-child(2){background:#0984e3}
-  .opt:nth-child(3){background:#00b894}
-  .opt:nth-child(4){background:#fdcb6e;color:#2d3436}
-  .short{font-size:24px;color:var(--muted);padding:24px;background:#12152e;border-radius:16px;text-align:center}
-  .progress{margin-top:20px;font-size:20px;text-align:center;color:var(--muted)}
-  .progress b{color:var(--accent2)}
-  .controls{display:flex;gap:12px;margin-top:24px;justify-content:center}
-
-  /* 순위판 */
-  .board{background:var(--card);border-radius:24px;padding:32px}
-  .board h2{font-size:24px;margin-bottom:8px}
-  .answer{color:var(--accent2);font-weight:700;margin-bottom:20px}
-  .row{
-    display:flex;align-items:center;gap:16px;background:#12152e;border-radius:14px;
-    padding:16px 20px;margin-bottom:10px;font-size:20px;transition:all .4s;
+  .lobby{
+    display:grid;grid-template-columns:auto 1fr;gap:34px;align-items:start;background:var(--card);
+    border-radius:34px;padding:36px;border:3px solid #ffe4f0;box-shadow:0 20px 50px rgba(255,159,196,.22);
   }
-  .row .r{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;background:#2a2f55}
-  .row.top1 .r{background:#ffd700;color:#2d3436}
-  .row.top2 .r{background:#c0c0c0;color:#2d3436}
-  .row.top3 .r{background:#cd7f32}
-  .row .nm{flex:1;font-weight:700}
-  .row .sc{font-weight:900;color:var(--accent2)}
-  .row .gain{color:#55efc4;font-size:15px;margin-left:8px}
+  .qrbox{text-align:center}
+  #qrcode{background:#fff;padding:16px;border-radius:22px;display:inline-block;border:3px solid #ffe4f0}
+  .pin{font-size:60px;letter-spacing:8px;color:var(--pink);margin:14px 0 4px}
+  .joinurl{color:var(--muted);font-size:15px;word-break:break-all}
+  .players h2{font-size:23px;margin-bottom:14px}
+  .count{color:var(--pink)}
+  .plist{display:flex;flex-wrap:wrap;gap:10px;max-height:320px;overflow:auto}
+  .chip{background:#fff0f6;color:#e07ba6;padding:9px 18px;border-radius:999px;font-size:16px;border:2px solid #ffe0ec}
+
+  .board{background:var(--card);border-radius:34px;padding:36px;border:3px solid #ffe4f0;box-shadow:0 20px 50px rgba(255,159,196,.22)}
+  .board h2{font-size:26px;margin-bottom:20px}
+  .row{
+    display:flex;align-items:center;gap:16px;background:#fff;border:2px solid #f2e8f0;border-radius:22px;
+    padding:15px 20px;margin-bottom:11px;font-size:21px;transition:all .4s;
+  }
+  .row .r{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#f3edf5;color:#b3a3b8;flex-shrink:0}
+  .row.top1{background:#fffdf3;border-color:#ffe6a0}
+  .row.top1 .r{background:linear-gradient(135deg,#ffe08f,#ffcf5f);color:#8a6a2a}
+  .row.top2 .r{background:linear-gradient(135deg,#e6ecf2,#cfd8e2);color:#6b7683}
+  .row.top3 .r{background:linear-gradient(135deg,#ffd0b0,#f6b58c);color:#8a5535}
+  .row .nm{flex:1}
+  .row .prog{color:var(--muted);font-size:16px;margin-right:14px}
+  .row .done{color:#4fc9a8;font-size:16px;margin-right:14px}
+  .row .sc{color:var(--lav);min-width:96px;text-align:right}
+  .controls{display:flex;gap:12px;margin-top:24px;justify-content:center}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>🧑‍🏫 퀴즈 진행 (교사용)</h1>
+  <h1>🍭 퀴즈 진행 (교사용)</h1>
 
-  <!-- 로비 -->
   <div id="lobby" class="lobby">
     <div class="qrbox">
       <div id="qrcode"></div>
@@ -80,34 +72,17 @@
       <div class="joinurl" id="joinurl"></div>
     </div>
     <div class="players">
-      <h2>참가자 <span class="count" id="pcount">0</span>명</h2>
+      <h2>참가한 친구 <span class="count" id="pcount">0</span>명</h2>
       <div class="plist" id="plist"></div>
-      <button class="btn" id="startBtn" style="margin-top:24px">▶ 게임 시작</button>
+      <button class="btn" id="startBtn" style="margin-top:26px">🚀 게임 시작</button>
     </div>
   </div>
 
-  <!-- 문제 -->
-  <div id="question" class="qcard hidden">
-    <div class="qhead">
-      <span id="qnum"></span>
-      <span class="timer" id="timer"></span>
-    </div>
-    <div class="qtext" id="qtext"></div>
-    <div class="opts" id="opts"></div>
-    <div class="short hidden" id="short">✍️ 주관식 문제 — 학생들이 답을 입력 중…</div>
-    <div class="progress">응답 <b id="answered">0</b> / <span id="ptotal">0</span>명</div>
-    <div class="controls">
-      <button class="btn ghost" id="revealBtn">결과 보기</button>
-    </div>
-  </div>
-
-  <!-- 순위판 -->
   <div id="board" class="board hidden">
-    <h2 id="boardTitle">🏆 순위</h2>
-    <div class="answer" id="answerLine"></div>
+    <h2 id="boardTitle">🏆 실시간 순위</h2>
     <div id="rows"></div>
     <div class="controls">
-      <button class="btn" id="nextBtn">다음 문제 ▶</button>
+      <button class="btn ghost" id="finalBtn">최종 결과 확정</button>
     </div>
   </div>
 </div>
@@ -117,188 +92,56 @@
 const QUIZ = {
   title: "의학용어 퀴즈",
   questions: [
-    {
-      type: "mc",
-      q: "다음 중 '색상'을 나타내는 어근과 실제 임상 용어의 연결이 올바르지 않은 것은?",
-      options: [
-        "melan/o (검은) — melanoma (흑색종)",
-        "leuk/o (하얀) — leukemia (백혈병)",
-        "cyan/o (붉은) — cyanosis (청색증)",
-        "erythr/o (붉은)"
-      ],
-      answer: 2,
-      time: 15
-    },
-    {
-      type: "short",
-      q: "'위(stomach)'를 뜻하는 어근 gastr/o와 '염증(inflammation)'을 뜻하는 접미사 -itis를 조립하여 완성되는 의학용어를 쓰시오.",
-      answer: ["gastritis"],
-      time: 15
-    },
-    {
-      type: "mc",
-      q: "의학용어 pericardium에서 사용된 접두사 peri-의 의미로 올바른 것은?",
-      options: ["안에 (endo-)", "위에 (epi-)", "아래에 (sub-)", "주위에 (around)"],
-      answer: 3,
-      time: 15
-    },
-    {
-      type: "short",
-      q: "어근 'cardi/o'가 의미하는 신체 부위는?",
-      answer: ["심장", "heart"],
-      time: 15
-    },
-    {
-      type: "mc",
-      q: "어근과 접미사가 결합할 때, 규칙에 따라 연결모음 'o'가 생략되어야 하는 결합 방식은?",
-      options: [
-        "gastr/o + -megaly",
-        "cardi/o + -pathy",
-        "gastr/o + -itis",
-        "oste/o + -malacia"
-      ],
-      answer: 2,
-      time: 15
-    },
-    {
-      type: "mc",
-      q: "'배뇨곤란'을 뜻하는 dysuria에서 접두사 dys-가 나타내는 의미로 가장 적절한 것은?",
-      options: [
-        "없는, 무(a-/an-)",
-        "나쁜(mal-)",
-        "곤란, 병적(painful, difficult)",
-        "초과, 과다(hyper-)"
-      ],
-      answer: 2,
-      time: 15
-    },
-    {
-      type: "mc",
-      q: "임상 현장에서 투약 처방 시 자주 사용되는 약어 중, '필요시(Pro Re Nata)'를 뜻하며 통증 완화제 등에 주로 결합하는 약어는?",
-      options: ["NPO", "PRN", "stat", "BID"],
-      answer: 1,
-      time: 15
-    },
-    {
-      type: "short",
-      q: "어근 melan/o와 접미사 -oma(종양)가 결합하여 만들어진 질환명은?",
-      answer: ["melanoma"],
-      time: 15
-    },
-    {
-      type: "mc",
-      q: "'삼킴곤란(aphagia)'에서 사용된 접미사 -phagia가 가진 본래의 의미는?",
-      options: ["소화", "삼킴", "구토", "통증"],
-      answer: 1,
-      time: 15
-    },
-    {
-      type: "mc",
-      q: "정맥 주사를 뜻하는 약어 IV는 Intravenous에서 유래한다. 접두사 intra-가 가진 의미로 가장 올바른 것은?",
-      options: [
-        "밖의, 외부(extra-)",
-        "안의, 내부(within)",
-        "사이의(inter-)",
-        "초과, 과다(hyper-)"
-      ],
-      answer: 1,
-      time: 15
-    }
+    { type:"mc", q:"다음 중 '색상'을 나타내는 어근과 실제 임상 용어의 연결이 올바르지 않은 것은?",
+      options:["melan/o (검은) — melanoma (흑색종)","leuk/o (하얀) — leukemia (백혈병)","cyan/o (붉은) — cyanosis (청색증)","erythr/o (붉은)"],
+      answer:2, time:15 },
+    { type:"short", q:"'위(stomach)'를 뜻하는 어근 gastr/o와 '염증(inflammation)'을 뜻하는 접미사 -itis를 조립하여 완성되는 의학용어를 쓰시오.",
+      answer:["gastritis"], time:15 },
+    { type:"mc", q:"의학용어 pericardium에서 사용된 접두사 peri-의 의미로 올바른 것은?",
+      options:["안에 (endo-)","위에 (epi-)","아래에 (sub-)","주위에 (around)"], answer:3, time:15 },
+    { type:"short", q:"어근 'cardi/o'가 의미하는 신체 부위는?", answer:["심장","heart"], time:15 },
+    { type:"mc", q:"어근과 접미사가 결합할 때, 규칙에 따라 연결모음 'o'가 생략되어야 하는 결합 방식은?",
+      options:["gastr/o + -megaly","cardi/o + -pathy","gastr/o + -itis","oste/o + -malacia"], answer:2, time:15 },
+    { type:"mc", q:"'배뇨곤란'을 뜻하는 dysuria에서 접두사 dys-가 나타내는 의미로 가장 적절한 것은?",
+      options:["없는, 무(a-/an-)","나쁜(mal-)","곤란, 병적(painful, difficult)","초과, 과다(hyper-)"], answer:2, time:15 },
+    { type:"mc", q:"임상 현장에서 투약 처방 시 자주 사용되는 약어 중, '필요시(Pro Re Nata)'를 뜻하며 통증 완화제 등에 주로 결합하는 약어는?",
+      options:["NPO","PRN","stat","BID"], answer:1, time:15 },
+    { type:"short", q:"어근 melan/o와 접미사 -oma(종양)가 결합하여 만들어진 질환명은?", answer:["melanoma"], time:15 },
+    { type:"mc", q:"'삼킴곤란(aphagia)'에서 사용된 접미사 -phagia가 가진 본래의 의미는?",
+      options:["소화","삼킴","구토","통증"], answer:1, time:15 },
+    { type:"mc", q:"정맥 주사를 뜻하는 약어 IV는 Intravenous에서 유래한다. 접두사 intra-가 가진 의미로 가장 올바른 것은?",
+      options:["밖의, 외부(extra-)","안의, 내부(within)","사이의(inter-)","초과, 과다(hyper-)"], answer:1, time:15 }
   ]
 };
 // ========================================
 
 const socket = io();
-let PIN = '';
-let timerInt = null;
-
-function show(id){
-  ['lobby','question','board'].forEach(x=>document.getElementById(x).classList.toggle('hidden', x!==id));
-}
-
-// 방 생성
+let PIN='', TOTAL=QUIZ.questions.length;
+function show(id){['lobby','board'].forEach(x=>document.getElementById(x).classList.toggle('hidden',x!==id));}
 socket.emit('host:create', QUIZ, (res)=>{
   if(!res.ok) return;
-  PIN = res.pin;
-  document.getElementById('pin').textContent = PIN;
-  const url = location.origin + '/?pin=' + PIN;
-  document.getElementById('joinurl').textContent = url;
-  new QRCode(document.getElementById('qrcode'), { text:url, width:220, height:220 });
+  PIN=res.pin;document.getElementById('pin').textContent=PIN;
+  const url=location.origin+'/?pin='+PIN;
+  document.getElementById('joinurl').textContent=url;
+  new QRCode(document.getElementById('qrcode'),{text:url,width:210,height:210});
 });
-
-// 참가자 갱신
-socket.on('host:players', (d)=>{
-  document.getElementById('pcount').textContent = d.count;
-  document.getElementById('plist').innerHTML = d.names.map(n=>`<span class="chip">${escapeHtml(n)}</span>`).join('');
+socket.on('host:players',(d)=>{
+  document.getElementById('pcount').textContent=d.count;
+  document.getElementById('plist').innerHTML=d.names.map(n=>`<span class="chip">${escapeHtml(n)}</span>`).join('');
 });
-
-document.getElementById('startBtn').onclick = ()=> socket.emit('host:next');
-document.getElementById('revealBtn').onclick = ()=> socket.emit('host:reveal');
-document.getElementById('nextBtn').onclick = ()=> socket.emit('host:next');
-
-function startTimer(sec){
-  clearInterval(timerInt);
-  let t = sec;
-  const el = document.getElementById('timer');
-  el.textContent = t+'s';
-  timerInt = setInterval(()=>{ t--; el.textContent=Math.max(0,t)+'s'; if(t<=0){clearInterval(timerInt); socket.emit('host:reveal');} },1000);
-}
-
-socket.on('host:question', (q)=>{
-  show('question');
-  document.getElementById('qnum').textContent = `문제 ${q.index+1} / ${q.total}`;
-  document.getElementById('qtext').textContent = q.question;
-  const opts=document.getElementById('opts');
-  const short=document.getElementById('short');
-  opts.innerHTML='';
-  if(q.type==='mc'){
-    short.classList.add('hidden'); opts.classList.remove('hidden');
-    q.options.forEach(o=>{ const d=document.createElement('div'); d.className='opt'; d.textContent=o; opts.appendChild(d); });
-  } else {
-    opts.classList.add('hidden'); short.classList.remove('hidden');
-  }
-  document.getElementById('answered').textContent='0';
-  document.getElementById('ptotal').textContent=document.getElementById('pcount').textContent;
-  startTimer(q.time);
-});
-
-socket.on('host:progress', (d)=>{
-  document.getElementById('answered').textContent = d.answered;
-  document.getElementById('ptotal').textContent = d.total;
-});
-
-socket.on('host:reveal', (d)=>{
-  clearInterval(timerInt);
-  show('board');
-  document.getElementById('boardTitle').textContent='🏆 현재 순위';
-  const ans = d.correctAnswer;
-  document.getElementById('answerLine').textContent = '정답: ' + (typeof ans==='number' ? '보기 '+(ans+1)+'번' : ans);
-  renderBoard(d.leaderboard);
-});
-
-socket.on('game:ended', (d)=>{
-  clearInterval(timerInt);
-  show('board');
-  document.getElementById('boardTitle').textContent='🎉 최종 결과';
-  document.getElementById('answerLine').textContent='';
-  document.getElementById('nextBtn').classList.add('hidden');
-  renderBoard(d.leaderboard);
-});
-
+document.getElementById('startBtn').onclick=()=>{socket.emit('host:start');show('board');};
+document.getElementById('finalBtn').onclick=()=>socket.emit('host:final');
+socket.on('host:leaderboard',(d)=>{TOTAL=d.total;renderBoard(d.leaderboard);});
+socket.on('host:final',(d)=>{document.getElementById('boardTitle').textContent='🎉 최종 결과';renderBoard(d.leaderboard);});
 function renderBoard(list){
   const rows=document.getElementById('rows');
-  rows.innerHTML = list.map((p,i)=>{
-    const cls = i===0?'top1':i===1?'top2':i===2?'top3':'';
-    const gain = p.lastGain>0 ? `<span class="gain">+${p.lastGain}</span>` : '';
-    return `<div class="row ${cls}">
-      <div class="r">${i+1}</div>
-      <div class="nm">${escapeHtml(p.name)}</div>
-      <div class="sc">${p.score.toLocaleString()}점 ${gain}</div>
-    </div>`;
-  }).join('') || '<div class="progress">아직 참가자가 없습니다</div>';
+  rows.innerHTML=list.map((p,i)=>{
+    const cls=i===0?'top1':i===1?'top2':i===2?'top3':'';
+    const status=p.done?`<span class="done">✅ 완료</span>`:`<span class="prog">${Math.min(p.progress+1,TOTAL)}/${TOTAL}번</span>`;
+    return `<div class="row ${cls}"><div class="r">${i+1}</div><div class="nm">${escapeHtml(p.name)}</div>${status}<div class="sc">${p.score.toLocaleString()}점</div></div>`;
+  }).join('')||'<div class="prog">아직 참가한 친구가 없어요</div>';
 }
-
-function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 </script>
 </body>
 </html>
