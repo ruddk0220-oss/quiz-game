@@ -5,83 +5,91 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 <title>퀴즈 참가</title>
 <script src="/socket.io/socket.io.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gaegu:wght@700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#0f1226; --card:#1b1f3b; --accent:#6c5ce7; --accent2:#00cec9;
-    --text:#f5f6fa; --muted:#a4a8c3;
+    --bg1:#fff4f8; --bg2:#eef7ff; --card:#ffffff;
+    --pink:#ff9fc4; --mint:#7fe3c9; --lav:#b9a7ff; --lemon:#ffd97a; --sky:#8fd0ff;
+    --ink:#5b4a5a; --muted:#a99bb0;
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
   body{
-    font-family:'Pretendard',-apple-system,BlinkMacSystemFont,'Malgun Gothic',sans-serif;
-    background:radial-gradient(circle at 30% 20%,#25275a,#0f1226 70%);
-    color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
+    font-family:'Jua',-apple-system,'Malgun Gothic',sans-serif;
+    background:linear-gradient(160deg,var(--bg1),var(--bg2));
+    color:var(--ink);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
   }
   .card{
-    width:100%;max-width:440px;background:var(--card);border-radius:24px;
-    padding:32px 24px;box-shadow:0 20px 60px rgba(0,0,0,.4);
+    width:100%;max-width:430px;background:var(--card);border-radius:34px;padding:34px 26px;
+    box-shadow:0 18px 0 -6px #ffe0ec, 0 24px 50px rgba(255,159,196,.28);
+    border:3px solid #ffe4f0;
   }
-  h1{font-size:24px;margin-bottom:6px;text-align:center}
-  .sub{color:var(--muted);text-align:center;margin-bottom:24px;font-size:14px}
+  h1{font-size:30px;text-align:center;margin-bottom:4px;color:#ff7fb0}
+  .sub{color:var(--muted);text-align:center;margin-bottom:22px;font-size:15px}
   input{
-    width:100%;padding:16px;border:none;border-radius:14px;font-size:18px;
-    background:#12152e;color:var(--text);margin-bottom:14px;outline:none;
-    border:2px solid transparent;
+    width:100%;padding:16px 18px;border:3px solid #ffe0ec;border-radius:18px;font-size:18px;
+    background:#fffafc;color:var(--ink);margin-bottom:14px;outline:none;font-family:inherit;transition:border-color .15s;
   }
-  input:focus{border-color:var(--accent)}
+  input::placeholder{color:#d8c7d4}
+  input:focus{border-color:var(--pink)}
   button{
-    width:100%;padding:16px;border:none;border-radius:14px;font-size:18px;font-weight:700;
-    background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;cursor:pointer;
-    transition:transform .1s;
+    width:100%;padding:16px;border:none;border-radius:20px;font-size:20px;cursor:pointer;font-family:inherit;
+    color:#fff;background:linear-gradient(135deg,var(--pink),var(--lav));
+    box-shadow:0 8px 0 -1px #e98bc0;transition:transform .12s, box-shadow .12s;
   }
-  button:active{transform:scale(.97)}
-  button:disabled{opacity:.5;cursor:not-allowed}
-  .err{color:#ff6b6b;font-size:14px;text-align:center;margin-top:12px;min-height:20px}
+  button:active{transform:translateY(5px);box-shadow:0 3px 0 -1px #e98bc0}
+  button:disabled{opacity:.45;box-shadow:none}
+  .err{color:#ff6f8e;font-size:15px;text-align:center;margin-top:10px;min-height:22px}
   .hidden{display:none}
 
-  /* 문제 화면 */
-  .qtop{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;color:var(--muted);font-size:14px}
-  .timer{font-weight:800;font-size:20px;color:var(--accent2)}
-  .qtext{font-size:20px;font-weight:700;line-height:1.4;margin:16px 0 24px}
-  .options{display:grid;gap:12px}
+  .qtop{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:16px;color:var(--muted)}
+  .timer{font-size:26px;color:var(--pink);background:#fff0f6;border-radius:14px;padding:2px 14px}
+  .qtext{font-size:22px;line-height:1.45;margin:14px 0 22px;color:var(--ink)}
+  .options{display:grid;gap:13px}
   .opt{
-    padding:18px;border-radius:14px;font-size:17px;font-weight:600;text-align:left;color:#fff;
-    border:none;cursor:pointer;
+    padding:17px 18px;border-radius:20px;font-size:18px;text-align:left;color:#fff;border:none;cursor:pointer;
+    font-family:inherit;transition:transform .12s, box-shadow .12s;
   }
-  .opt:nth-child(1){background:#e17055}
-  .opt:nth-child(2){background:#0984e3}
-  .opt:nth-child(3){background:#00b894}
-  .opt:nth-child(4){background:#fdcb6e;color:#2d3436}
-  .opt:disabled{opacity:.4}
-  .waitbox{text-align:center;padding:30px 0}
-  .waitbox .big{font-size:44px;font-weight:800;margin:10px 0}
-  .rank{font-size:20px;color:var(--accent2);font-weight:800}
-  .badge{display:inline-block;padding:8px 16px;border-radius:999px;font-weight:700;margin-top:10px}
-  .ok{background:#00b894}
-  .no{background:#d63031}
+  .opt:nth-child(1){background:linear-gradient(135deg,#ffb0c9,#ff8fb6);box-shadow:0 7px 0 -1px #ee89ad}
+  .opt:nth-child(2){background:linear-gradient(135deg,#9ad8ff,#77c4ff);box-shadow:0 7px 0 -1px #6fb4ee}
+  .opt:nth-child(3){background:linear-gradient(135deg,#9ff0d8,#6fe0c1);box-shadow:0 7px 0 -1px #66cfb0}
+  .opt:nth-child(4){background:linear-gradient(135deg,#ffe08f,#ffcf5f);color:#8a6a2a;box-shadow:0 7px 0 -1px #efc056}
+  .opt:active{transform:translateY(5px)}
+  .opt:disabled{opacity:.4;box-shadow:none}
+
+  .waitbox{text-align:center;padding:26px 6px}
+  .waitbox .emoji{font-size:60px;display:block;margin-bottom:6px;animation:pop .5s ease}
+  .waitbox .big{font-size:46px;color:var(--pink);margin:8px 0}
+  .badge{display:inline-block;padding:10px 22px;border-radius:999px;font-size:20px;color:#fff;margin-top:6px}
+  .ok{background:linear-gradient(135deg,#7fe3c9,#5fd3b5)}
+  .no{background:linear-gradient(135deg,#ffb0c9,#ff8fb6)}
+  .scoreline{color:var(--lav);font-size:19px;margin-top:16px}
+  @keyframes pop{0%{transform:scale(.4);opacity:0}70%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
+  .bounce{animation:bounce 1.1s ease-in-out infinite}
+  @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
 </style>
 </head>
 <body>
 <div class="card">
-  <!-- 1. 참가 화면 -->
   <div id="join">
-    <h1>🎮 퀴즈 참가</h1>
-    <p class="sub">방 번호와 이름을 입력하세요</p>
+    <h1>🎈 퀴즈 참가</h1>
+    <p class="sub">방 번호랑 이름을 넣어줘!</p>
     <input id="pin" type="tel" inputmode="numeric" placeholder="방 번호 (4자리)" maxlength="4" />
-    <input id="name" type="text" placeholder="이름 / 닉네임" maxlength="12" />
+    <input id="name" type="text" placeholder="이름 / 별명" maxlength="12" />
     <button id="joinBtn">입장하기</button>
     <div class="err" id="joinErr"></div>
   </div>
 
-  <!-- 2. 대기 화면 -->
   <div id="lobby" class="hidden">
     <div class="waitbox">
-      <div>✅ 입장 완료!</div>
+      <span class="emoji bounce">🐣</span>
+      <div>입장 완료!</div>
       <div class="big" id="myName"></div>
-      <p class="sub">선생님이 문제를 시작할 때까지<br/>잠시 기다려 주세요…</p>
+      <p class="sub">선생님이 시작하면 바로 문제가 나와요</p>
     </div>
   </div>
 
-  <!-- 3. 문제 화면 -->
   <div id="quiz" class="hidden">
     <div class="qtop">
       <span id="qnum"></span>
@@ -90,135 +98,80 @@
     <div class="qtext" id="qtext"></div>
     <div class="options" id="options"></div>
     <input id="shortAns" class="hidden" placeholder="정답 입력 후 Enter" />
+    <div class="scoreline" id="runScore"></div>
   </div>
 
-  <!-- 4. 응답 후 대기 -->
-  <div id="answered" class="hidden">
+  <div id="feedback" class="hidden">
     <div class="waitbox">
-      <div>답안 제출 완료</div>
-      <span class="badge" id="resultBadge"></span>
-      <p class="sub" style="margin-top:16px">다른 친구들을 기다리는 중…</p>
+      <span class="emoji" id="fbEmoji">✨</span>
+      <span class="badge" id="fbBadge"></span>
+      <div class="scoreline" id="fbScore"></div>
+      <p class="sub" style="margin-top:14px">다음 문제로 이동중…</p>
     </div>
   </div>
 
-  <!-- 5. 순위 공개 -->
-  <div id="reveal" class="hidden">
-    <div class="waitbox">
-      <div class="rank" id="myRank"></div>
-      <div class="big" id="myScore"></div>
-      <div id="gainText" class="sub"></div>
-    </div>
-  </div>
-
-  <!-- 종료 -->
   <div id="ended" class="hidden">
     <div class="waitbox">
-      <div>🏁 게임 종료!</div>
+      <span class="emoji bounce">🎉</span>
+      <div>다 풀었어요!</div>
       <div class="big" id="finalScore"></div>
-      <p class="sub">수고했어요 👏</p>
+      <p class="sub">수고했어요! 친구들이 끝나면<br/>선생님 화면에서 최종 순위를 확인해요</p>
     </div>
   </div>
 </div>
 
 <script>
 const socket = io();
-let myName = '';
-let timerInt = null;
-
-function show(id){
-  ['join','lobby','quiz','answered','reveal','ended'].forEach(x=>{
-    document.getElementById(x).classList.toggle('hidden', x!==id);
-  });
-}
-
-// URL 파라미터로 pin 자동 입력 (QR에 ?pin=1234)
-const params = new URLSearchParams(location.search);
-if(params.get('pin')) document.getElementById('pin').value = params.get('pin');
-
-document.getElementById('joinBtn').onclick = join;
+let myName='', myScore=0, timerInt=null;
+function show(id){['join','lobby','quiz','feedback','ended'].forEach(x=>document.getElementById(x).classList.toggle('hidden',x!==id));}
+const params=new URLSearchParams(location.search);
+if(params.get('pin')) document.getElementById('pin').value=params.get('pin');
+document.getElementById('joinBtn').onclick=join;
 function join(){
-  const pin = document.getElementById('pin').value.trim();
-  const name = document.getElementById('name').value.trim();
-  if(pin.length<4 || !name){ document.getElementById('joinErr').textContent='방 번호와 이름을 확인하세요'; return; }
+  const pin=document.getElementById('pin').value.trim();
+  const name=document.getElementById('name').value.trim();
+  if(pin.length<4||!name){document.getElementById('joinErr').textContent='방 번호랑 이름을 확인해줘';return;}
   socket.emit('player:join',{pin,name},(res)=>{
-    if(!res.ok){ document.getElementById('joinErr').textContent=res.error; return; }
-    myName = res.name;
-    document.getElementById('myName').textContent = myName;
-    show('lobby');
+    if(!res.ok){document.getElementById('joinErr').textContent=res.error;return;}
+    myName=res.name;document.getElementById('myName').textContent=myName;show('lobby');
   });
 }
-
 function startTimer(sec){
-  clearInterval(timerInt);
-  let t = sec;
-  const el = document.getElementById('timer');
-  el.textContent = t+'s';
-  timerInt = setInterval(()=>{
-    t--;
-    el.textContent = Math.max(0,t)+'s';
-    if(t<=0){ clearInterval(timerInt); lockAnswers(); }
-  },1000);
+  clearInterval(timerInt);let t=sec;const el=document.getElementById('timer');el.textContent=t+'s';
+  timerInt=setInterval(()=>{t--;el.textContent=Math.max(0,t)+'s';if(t<=0){clearInterval(timerInt);lockAnswers();socket.emit('player:timeout');}},1000);
 }
-
-function lockAnswers(){
-  document.querySelectorAll('.opt').forEach(b=>b.disabled=true);
-  document.getElementById('shortAns').disabled=true;
-}
-
-socket.on('player:question', (q)=>{
+function lockAnswers(){document.querySelectorAll('.opt').forEach(b=>b.disabled=true);document.getElementById('shortAns').disabled=true;}
+socket.on('player:question',(q)=>{
   show('quiz');
-  document.getElementById('qnum').textContent = `문제 ${q.index+1} / ${q.total}`;
-  document.getElementById('qtext').textContent = q.question;
-  const optBox = document.getElementById('options');
-  const shortAns = document.getElementById('shortAns');
-  optBox.innerHTML='';
+  document.getElementById('qnum').textContent=`문제 ${q.index+1} / ${q.total}`;
+  document.getElementById('qtext').textContent=q.question;
+  document.getElementById('runScore').textContent=`내 점수 ${myScore}점`;
+  const optBox=document.getElementById('options');const shortAns=document.getElementById('shortAns');optBox.innerHTML='';
   if(q.type==='mc'){
-    shortAns.classList.add('hidden');
-    optBox.classList.remove('hidden');
-    q.options.forEach(o=>{
-      const b=document.createElement('button');
-      b.className='opt'; b.textContent=o.text;
-      b.onclick=()=>submit(o.i);
-      optBox.appendChild(b);
-    });
-  } else {
-    optBox.classList.add('hidden');
-    shortAns.classList.remove('hidden');
-    shortAns.value=''; shortAns.disabled=false;
-    shortAns.focus();
-    shortAns.onkeydown=(e)=>{ if(e.key==='Enter' && shortAns.value.trim()) submit(shortAns.value.trim()); };
+    shortAns.classList.add('hidden');optBox.classList.remove('hidden');
+    q.options.forEach(o=>{const b=document.createElement('button');b.className='opt';b.textContent=o.text;b.onclick=()=>submit(o.i);optBox.appendChild(b);});
+  }else{
+    optBox.classList.add('hidden');shortAns.classList.remove('hidden');shortAns.value='';shortAns.disabled=false;shortAns.focus();
+    shortAns.onkeydown=(e)=>{if(e.key==='Enter'&&shortAns.value.trim())submit(shortAns.value.trim());};
   }
   startTimer(q.time);
 });
-
 function submit(answer){
-  lockAnswers();
+  clearInterval(timerInt);lockAnswers();
   socket.emit('player:answer',{answer},(res)=>{
-    const badge=document.getElementById('resultBadge');
-    if(res && res.ok){
-      badge.textContent = res.correct ? `정답! +${res.gain}점` : '아쉬워요 😢';
-      badge.className = 'badge ' + (res.correct?'ok':'no');
+    if(res&&res.ok){
+      myScore=res.score;
+      document.getElementById('fbEmoji').textContent=res.correct?'🎊':'🍀';
+      const badge=document.getElementById('fbBadge');
+      badge.textContent=res.correct?'정답!':'아쉬워요';
+      badge.className='badge '+(res.correct?'ok':'no');
+      document.getElementById('fbScore').textContent=(res.gain>0?`+${res.gain}점  `:'')+`(총 ${res.score}점)`;
+      show('feedback');
     }
-    show('answered');
   });
 }
-
-socket.on('player:reveal', (d)=>{
-  clearInterval(timerInt);
-  document.getElementById('myRank').textContent = `${d.rank}위 / ${d.total}명`;
-  document.getElementById('myScore').textContent = d.score.toLocaleString()+'점';
-  document.getElementById('gainText').textContent = d.lastGain>0 ? `이번 문제 +${d.lastGain}점` : '이번 문제 0점';
-  show('reveal');
-});
-
-socket.on('game:ended', ()=>{ /* 개별 최종은 아래 */ });
-socket.on('player:reveal', ()=>{});
-socket.on('game:ended', (d)=>{
-  const me = (d.leaderboard||[]).find(p=>p.name===myName);
-  document.getElementById('finalScore').textContent = me ? me.score.toLocaleString()+'점' : '';
-  show('ended');
-});
-socket.on('game:closed', ()=>{ alert('선생님이 게임을 종료했어요.'); location.reload(); });
+socket.on('player:finished',(d)=>{clearInterval(timerInt);myScore=d.score;document.getElementById('finalScore').textContent=d.score.toLocaleString()+'점';show('ended');});
+socket.on('game:closed',()=>{alert('선생님이 게임을 종료했어요.');location.reload();});
 </script>
 </body>
 </html>
